@@ -107,8 +107,8 @@ jobs:
       - name: Save Packaged Toolbox
         uses: actions/upload-artifact@v4
         with:
-          name: MatBox${{ env.versionNumber }}.mltbx
-          path: releases/MatBox_${{ env.versionNumber }}.mltbx
+          name: Dropbox_MATLAB${{ env.versionNumber }}.mltbx
+          path: releases/Dropbox_MATLAB_${{ env.versionNumber }}.mltbx
 
       # Commit the JSON for the MATLAB releases badge and ToolboxPackaging.prj
       - name: commit changed files
@@ -140,7 +140,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           draft: true        
-          artifacts: "releases/MatBox_${{ env.versionNumber }}.mltbx"
+          artifacts: "releases/Dropbox_MATLAB_${{ env.versionNumber }}.mltbx"
           generateReleaseNotes: true
-          body: "![MATLAB Versions Tested](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fehennestad%2Fmatbox%2Fmain%2F.github%2Fbadges%2F${{  github.ref_name }}%2Ftested_with.json)"
+          body: "![MATLAB Versions Tested](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2F${{github.repository}}%2Fbadges%2F${{  github.ref_name }}%2Ftested_with.json)"
 
