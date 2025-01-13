@@ -1,7 +1,7 @@
 function versionStr = toolboxversion()
 % toolboxversion - Get the version identifier for the openMINDS toolbox
 
-    rootPath = {{namespace_name}}.toolboxdir();
+    rootPath = dropbox.toolboxdir();
     contentsFile = fullfile(rootPath, 'Contents.m');
 
     if ~isfile(contentsFile)
@@ -19,7 +19,7 @@ function versionStr = toolboxversion()
     end
 
     if isempty(matchedStr)
-        error('{{toolbox_name}}:Version:VersionNotFound', ...
+        error('Dropbox-MATLAB:Version:VersionNotFound', ...
             'No version was detected for this matbox installation.')
     end
     versionStr = matchedStr{1};

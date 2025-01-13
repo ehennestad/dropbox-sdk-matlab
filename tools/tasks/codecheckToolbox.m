@@ -1,5 +1,5 @@
 function codecheckToolbox()
     installMatBox()
-    projectRootDirectory = {{namespace_name}}tools.projectdir();
+    projectRootDirectory = dropboxtools.projectdir();
     matbox.tasks.codecheckToolbox(projectRootDirectory)
 end

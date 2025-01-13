@@ -4,6 +4,6 @@ function packageToolbox(releaseType, versionString)
         versionString {mustBeTextScalar} = "";
     end
     installMatBox()
-    projectRootDirectory = {{namespace_name}}tools.projectdir();
+    projectRootDirectory = dropboxtools.projectdir();
     matbox.tasks.packageToolbox(projectRootDirectory, releaseType, versionString)
 end
