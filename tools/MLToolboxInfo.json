@@ -2,7 +2,7 @@
     "Namespace" : "dropbox",
     "ToolboxOptions": {
         "Identifier": "d722c8fd-351d-41a2-8d49-7fadc651de6d",
-        "ToolboxName": "Dropbox-MATLAB",
+        "ToolboxName": "Dropbox_MATLAB",
         "AuthorName": "Eivind Hennestad",
         "AuthorEmail": "ehennestad@gmail.com",
         "AuthorCompany": "N/A",
