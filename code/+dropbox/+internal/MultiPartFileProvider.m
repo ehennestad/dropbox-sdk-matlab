@@ -8,7 +8,7 @@
             ChunkSize
         end
 
-        properties 
+        properties
             TotalCount = 0
             CurrentCount = 0
         end

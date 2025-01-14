@@ -2,28 +2,28 @@ classdef AuthorizationClient < handle
 % AuthorizationClient - Singleton client for PKCE authorization flow
 %
 %   Syntax:
-%       authClient = dropbox.internal.AuthorizationClient.instance() 
+%       authClient = dropbox.internal.AuthorizationClient.instance()
 %           creates a client or retrieves an existing (persistent) client
 %
-%       authClient = dropbox.internal.AuthorizationClient.instance(clientId) 
+%       authClient = dropbox.internal.AuthorizationClient.instance(clientId)
 %           creates a client or retrieves an existing (persistent) client
 %           using the client id of a Dropbox app of your choice.
 %
-%       authClient.fetchToken() redirects to the browser to Dropbox for user to 
+%       authClient.fetchToken() redirects to the browser to Dropbox for user to
 %           grant permissions
 %
 %   Methods:
-%       This class provides the following utility methods for getting header 
-%       fields or weboptions with the value of the Authorization field set to 
+%       This class provides the following utility methods for getting header
+%       fields or weboptions with the value of the Authorization field set to
 %       Bearer <Token> using the access token stored in this client:
 %           - getAuthHeaderField
 %           - getWebOptions
 %
 %   Description:
-%       This client uses a Dropbox app to retrieve an access token for a user 
-%       account via the PKCE authorization flow. The first time you need a 
-%       token, the client opens a web page in your browser. You must then 
-%       authorize the Matlab-API-Client and copy the resulting authorization 
+%       This client uses a Dropbox app to retrieve an access token for a user
+%       account via the PKCE authorization flow. The first time you need a
+%       token, the client opens a web page in your browser. You must then
+%       authorize the Matlab-API-Client and copy the resulting authorization
 %       code. Finally, paste that code into the MATLAB input dialog that appears.
 %
 %       Alternatively, you can use your own Dropbox app instead.
@@ -48,7 +48,6 @@ classdef AuthorizationClient < handle
     properties (SetAccess = immutable, GetAccess = private)
         DropboxAppClientID (1,1) string = missing
     end
-
 
     properties (Constant, Access = private)
         SINGLETON_NAME = "Dropbox_Authorization_Client"
@@ -175,7 +174,6 @@ classdef AuthorizationClient < handle
                 end
             end
 
-
             % Prompt the user to input the authorization code
             authCode = inputdlg(...
                 'Enter the access code provided by Dropbox: ', ...
@@ -250,7 +248,7 @@ classdef AuthorizationClient < handle
                         'Failed to refresh Dropbox Access token with ', ...
                         'following error: \n"%s" \nTrying again in 5 seconds...\n'] , ...
                         ME.message )
-                    numRetries = numRetries + 1; 
+                    numRetries = numRetries + 1;
                     pause(5)
                 end
             end
@@ -300,9 +298,9 @@ classdef AuthorizationClient < handle
         function obj = instance(clientId)
         % instance - Return a singleton instance of the AuthenticationClient
 
-        %   Note: to achieve persistent singleton instance that survives a 
-        %   clear all statement, the singleton instance is stored in the 
-        %   graphics root object's appdata. 
+        %   Note: to achieve persistent singleton instance that survives a
+        %   clear all statement, the singleton instance is stored in the
+        %   graphics root object's appdata.
         %   Open question: Are there better ways to do this?
 
             arguments
@@ -314,7 +312,7 @@ classdef AuthorizationClient < handle
 
             authClientObject = getappdata(0, SINGLETON_NAME);
 
-            if ~isempty(authClientObject) && isa(authClientObject, className) && isvalid(authClientObject) 
+            if ~isempty(authClientObject) && isa(authClientObject, className) && isvalid(authClientObject)
                 % Singleton instance is valid
             else % Construct the client if singleton instance is not present
                 authClientObject = feval(className, clientId);

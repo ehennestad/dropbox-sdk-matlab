@@ -78,7 +78,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         
         function set.Direction(obj, dir)
             obj.Direction = dir;
-            %fprintf('Direction set: %s\n', obj.Direction)
+            % fprintf('Direction set: %s\n', obj.Direction)
         end
         
         function set.Value(obj, value)
@@ -129,7 +129,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
             if ~isempty(obj.Value) && doUpdate
                 
                 if isempty(obj.Max)
-                    % Maxmimum (size of request/response) is not known, 
+                    % Maxmimum (size of request/response) is not known,
                     % file transfer did not start yet.
                     progressValue = 0;
                     msg = sprintf('Waiting for %s to start...', lower(obj.ActionName));
@@ -141,7 +141,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
                         msg = obj.getProgressMessage();
                         obj.HasTransferStarted = true;
 
-                    elseif obj.Direction == MessageType.Response 
+                    elseif obj.Direction == MessageType.Response
                         if ~obj.HasTransferStarted
                             obj.HasTransferStarted = true;
                         end
@@ -174,7 +174,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
             end
             
             function cancelAndClose(obj)
-                % Call the required CancelFcn and then close our progress bar. 
+                % Call the required CancelFcn and then close our progress bar.
                 % This is called when user clicks cancel or closes the window.
                 obj.CancelFcn();
                 obj.closeWaitbar();
@@ -197,13 +197,12 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
             fprintf('%s\n%s', deletePrevStr, msgStr);
             obj.PreviousMessage = msgStr;
         end
-
     end
     
     methods (Access = protected)
         function closeWaitbar(obj)
-            % Close the progress waitbar by deleting the handle so 
-            % CloseRequestFcn isn't called, because waitbar calls 
+            % Close the progress waitbar by deleting the handle so
+            % CloseRequestFcn isn't called, because waitbar calls
             % cancelAndClose(), which would cause recursion.
             if ~isempty(obj.WaitbarHandle)
                 delete(obj.WaitbarHandle);
@@ -217,7 +216,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         function titleStr = getProgressTitle(obj)
             
             % Make ongoing present action verb, i.e [Download]ing or [Upload]ing
-            action = sprintf('%sing', obj.ActionName); 
+            action = sprintf('%sing', obj.ActionName);
 
             if ~isempty(obj.Filename)
                 if numel(char(obj.Filename)) <= 26
@@ -262,7 +261,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         end
     
         function str = getRemainingTimeEstimate(obj)
-        %getRemainingTimeEstimate Get string with estimated time remaining        
+        %getRemainingTimeEstimate Get string with estimated time remaining
             tElapsed = seconds( toc(obj.StartTime) );
             tRemaining = round( (tElapsed ./ obj.PercentTransferred) .* (100-obj.PercentTransferred) );
 
@@ -315,7 +314,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         end
             
         function durationStr = formatTimeAsString(durationValue)
-        %formatTimeAsString Format time showing the leading unit.    
+        %formatTimeAsString Format time showing the leading unit.
             if hours(durationValue) > 1
                 durationUnit = 'hour';
                 durationValueInt = round(hours(durationValue));

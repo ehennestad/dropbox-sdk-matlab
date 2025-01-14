@@ -19,7 +19,7 @@ properties
         end
     end
 
-    methods 
+    methods
         function obj = getMonitor(obj)
             % Method for returning the object. This will be used as a function
             % handle for the "ProgressMonitorFcn" in matlab.net.http.HTTPOptions
@@ -95,8 +95,8 @@ properties
         end
           
         function closeWaitbar(~)
-            % This is called by done() when a request is finished. However, we 
-            % need to keep the progress monitor open for the next part/request. 
+            % This is called by done() when a request is finished. However, we
+            % need to keep the progress monitor open for the next part/request.
         end
 
         function percentTransferred = computePercentTransferred(obj)

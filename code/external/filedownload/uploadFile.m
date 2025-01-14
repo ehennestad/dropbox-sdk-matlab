@@ -2,14 +2,14 @@ function [wasSuccess, response] = uploadFile(strLocalFilename, strURLFilename, o
 %uploadFile Upload a file to web while displaying progress.
 %
 %   uploadFile(strLocalFilename, strURLFilename) uploads the file
-%   specified by the local path `strLocalFilename` to the web location 
+%   specified by the local path `strLocalFilename` to the web location
 %   specified by `strURLFilename`.
 %
 %   wasSuccess = uploadFile(localFilename, strURLFilename) uploads the file
 %   and returns a boolean value indicating if the upload was successful or
 %   not.
 %
-%   [wasSuccess, response] = uploadFile(localFilename, strURLFilename) 
+%   [wasSuccess, response] = uploadFile(localFilename, strURLFilename)
 %   uploads the file and returns the wasSuccess boolean and a response
 %   object.
 %
@@ -21,7 +21,7 @@ function [wasSuccess, response] = uploadFile(strLocalFilename, strURLFilename, o
 
 %   Written by Eivind Hennestad | v1.0.6
 
-    arguments 
+    arguments
         strLocalFilename       char         {mustBeNonempty}
         strURLFilename         char         {mustBeValidUrl}
         options.DisplayMode    char         {mustBeValidDisplay} = 'Dialog Box'
@@ -81,7 +81,6 @@ function [wasSuccess, response] = uploadFile(strLocalFilename, strURLFilename, o
         clear response
     end
 end
-
 
 %% Custom validation functions
 

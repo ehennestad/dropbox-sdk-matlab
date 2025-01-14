@@ -1,14 +1,12 @@
 classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
-% DropboxFileApiClient - API client for Dropbox file API endpoints 
-
+% DropboxFileApiClient - API client for Dropbox file API endpoints
 
 % See also:
 % https://www.dropbox.com/developers/documentation/http/documentation
 
-
     properties
         ServerURL matlab.net.URI = "https://api.dropboxapi.com/2"
-        %HttpOptions = matlab.net.http.HTTPOptions; Todo??
+        % HttpOptions = matlab.net.http.HTTPOptions; Todo??
     end
 
     properties
@@ -61,7 +59,7 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
         function set.TeamConfiguration(obj, value)
             obj.TeamConfiguration = value;
             obj.postSetTeamConfiguration()
-        end        
+        end
     end
 
     methods % Methods for downloading / uploading with progress monitor
@@ -158,7 +156,7 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
             parameters = struct( ...
                 "autorename", options.AutoRename, ...
                 "path", folderPath ...
-            );    
+            );
 
             apiEndpoint = obj.getRPCEndpointURL("files/create_folder_v2");
             responseData = obj.postRPC(apiEndpoint, parameters);
@@ -251,9 +249,9 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
         end
 
         function result = move(obj, sourcePath, destinationPath, options)
-        % move - Move a file or folder to a different location in the user's Dropbox. 
-        % 
-        % If the source path is a folder all its contents will be moved. 
+        % move - Move a file or folder to a different location in the user's Dropbox.
+        %
+        % If the source path is a folder all its contents will be moved.
         % Note that case-only renaming is currently not supported.
         
             arguments
@@ -262,7 +260,7 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
                 destinationPath (1,1) string
                 options.AllowOwnershipTransfer (1,1) logical = false
                 options.Autorename (1,1) logical = false
-            end            
+            end
             
             sourcePath = obj.validatePathName(sourcePath);
             destinationPath = obj.validatePathName(destinationPath);
@@ -272,8 +270,8 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
         end
 
         function result = copy(obj, sourcePath, destinationPath, options)
-        % copy - Copy a file or folder to a different location in the user's Dropbox. 
-        % 
+        % copy - Copy a file or folder to a different location in the user's Dropbox.
+        %
         %  If the source path is a folder all its contents will be copied.
 
             arguments
@@ -282,7 +280,7 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
                 destinationPath (1,1) string
                 options.AllowOwnershipTransfer (1,1) logical = false
                 options.Autorename (1,1) logical = false
-            end            
+            end
             
             sourcePath = obj.validatePathName(sourcePath);
             destinationPath = obj.validatePathName(destinationPath);
@@ -353,7 +351,7 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
     % uploadFile will use the following endpoints if the file size is
     % larger than 150 MiB. Keeping as Hidden instead of Private so that
     % these methods are available for advanced use cases.
-    methods (Hidden) % Hidden API endpoints 
+    methods (Hidden) % Hidden API endpoints
         function uploadSessionID = uploadSessionStart(obj)
 
             parameters = struct( ...
@@ -408,7 +406,7 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
                 ), ...
                 'commit', struct( ...
                     'path', dropBoxFilePath, ...
-                    'mode', uploadOptions.Mode, ... 
+                    'mode', uploadOptions.Mode, ...
                     'autorename', uploadOptions.AutoRename, ...
                     'mute', uploadOptions.Mute, ...
                     'strict_conflict', uploadOptions.StrictConflict ...
@@ -580,7 +578,7 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
         end
 
         function multipartUpload(obj, filePath, dropBoxFilePath, uploadOptions, options)
-            arguments 
+            arguments
                 obj
                 filePath               char         %{mustBeValidUrl}
                 dropBoxFilePath        (1,1) string
@@ -644,7 +642,7 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
                     obj.uploadSessionFinish(uploadSessionID, dataProvider, offset, dropBoxFilePath, "WebOptions", webOpts, nvPairs{:});
                     obj.HasOpenUploadSession = false;
                 end
-                %drawnow
+                % drawnow
 
                 offset = offset + chunkSize;
                 dataProvider.resetCount()
@@ -660,7 +658,7 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
         end
     end
 
-    methods (Access = private) % Property post set methods 
+    methods (Access = private) % Property post set methods
         function postSetTeamConfiguration(obj)
 
             switch obj.TeamConfiguration
