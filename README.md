@@ -1,3 +1,11 @@
+<a href="/resources/images/toolbox_image.png">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="/resources/images/toolbox_image.png">
+    <source media="(prefers-color-scheme: light)" srcset="/resources/images/toolbox_image.png">
+    <img alt="Dropbox-API-Client-logo" src="/resources/images/toolbox_image.png" title="Dropbox API" align="right" height="70"​>
+  </picture>
+</a>
+
 # Dropbox File API Client - Upload and Download Files
 
 <h4 align="center">Class-based Dropbox File API-Client for uploading and downloading files from Dropbox.</h4>
