@@ -27,7 +27,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
     end
 
     properties
-        FileSizeBytes
+        FileSizeBytes = nan
     end
 
     properties % Implement superclass properties (matlab.net.http.ProgressMonitor)
