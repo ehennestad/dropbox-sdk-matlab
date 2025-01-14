@@ -8,7 +8,7 @@
 
 # Dropbox API Client - Upload and Download Files
 
-<h4 align="center">Class-based Dropbox File API-Client for uploading and downloading files from Dropbox.</h4>
+<h4 align="center">Class-based Dropbox File API-Client for uploading and downloading files from Dropbox with progress display.</h4>
 
 <h4 align="center">
   <a href="https://github.com/ehennestad/dropbox-sdk-matlab/releases/latest">
