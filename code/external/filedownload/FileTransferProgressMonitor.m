@@ -26,6 +26,10 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         IndentSize = 0              % Size of indentation (number of spaces) if displaying progress in command window.
     end
 
+    properties
+        FileSizeBytes = nan
+    end
+
     properties % Implement superclass properties (matlab.net.http.ProgressMonitor)
         Direction matlab.net.http.MessageType
         Value uint64                % Number of transferred bytes
@@ -128,7 +132,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
 
             if ~isempty(obj.Value) && doUpdate
                 
-                if isempty(obj.Max)
+                if isempty(obj.Max) && isnan(obj.FileSizeBytes)
                     % Maxmimum (size of request/response) is not known,
                     % file transfer did not start yet.
                     progressValue = 0;
@@ -284,15 +288,27 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         end
     
         function percentTransferred = computePercentTransferred(obj)
-            percentTransferred = double(obj.Value)/double(obj.Max)*100;
+            fileSizeBytes = obj.getFileSizeBytes();
+            percentTransferred = double(obj.Value)/double(fileSizeBytes)*100;
         end
 
         function fileSizeMb = getFileSizeMb(obj)
-            fileSizeMb = round( double(obj.Max) / 1024 / 1024 );
+            fileSizeBytes = obj.getFileSizeBytes();
+            fileSizeMb = round( double(fileSizeBytes) / 1024 / 1024 );
         end
 
         function transferredMb = getTransferredMb(obj)
             transferredMb = round( double(obj.Value) / 1024 / 1024 );
+        end
+
+        function fileSizeBytes = getFileSizeBytes(obj)
+            if isempty(obj.Max) && ~isnan(obj.FileSizeBytes)
+                fileSizeBytes = obj.FileSizeBytes;
+            elseif isnan(obj.FileSizeBytes) && ~isempty(obj.Max)
+                fileSizeBytes = obj.Max;
+            else
+                fileSizeBytes = nan;
+            end
         end
     end
 

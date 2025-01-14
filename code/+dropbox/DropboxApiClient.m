@@ -75,8 +75,13 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
             folder = fullfile(targetFolder, fileparts(filePath));
             if ~isfolder(folder); mkdir(folder); end
             strLocalFilename = fullfile(targetFolder, filePath);
+            
+            % Need to pass filesize to the progress monitor:
+            fileMetadata = obj.getMetadata(filePath);
+            fileSizeBytes = fileMetadata.size;
 
-            downloadedFilePath = downloadFile(strLocalFilename, fileLinkURL);
+            downloadedFilePath = downloadFile(strLocalFilename, fileLinkURL, ...
+                "FileSizeBytes", fileSizeBytes);
         end
 
         function uploadFile(obj, filePathLocal, filePathRemote, options)
@@ -322,9 +327,13 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
             parameters = struct( ...
                 "path", filePath ...
                 );
+            webOpts = matlab.net.http.HTTPOptions(...
+                'ProgressMonitorFcn', @FileTransferProgressMonitor, ...
+                'UseProgressMonitor', true, ...
+                'ConnectTimeout', 20);
 
             apiEndpoint = obj.getContentEndpointURL("files/download");
-            responseData = obj.postContent(apiEndpoint, parameters, []);
+            responseData = obj.postContent(apiEndpoint, parameters, [], "WebOptions", webOpts);
         end
 
         function fileLinkURL = getTemporaryDownloadLink(obj, filePath)

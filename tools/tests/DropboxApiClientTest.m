@@ -5,27 +5,14 @@ classdef DropboxApiClientTest < matlab.unittest.TestCase
         TestFolder = "/TestFolder"
     end
     
-    methods(TestMethodSetup)
+    methods(TestClassSetup)
         function setupTest(testCase)
+            testCase.TestFolder = testCase.TestFolder + "/" + char(randi([65 90], 1, 5));
+
             testCase.Client = dropbox.DropboxApiClient();
-            try
-                testCase.Client.createFolder(testCase.TestFolder);
-            catch ME
-                if ~contains(ME.message, 'path/conflict')
-                    rethrow(ME);
-                end
-            end
-        end
-    end
-    
-    methods(TestMethodTeardown)
-        function teardownTest(testCase)
-            % Clean up test folder
-            try
-                testCase.Client.delete(testCase.TestFolder);
-            catch
-                % Ignore cleanup errors
-            end
+            testCase.Client.createFolder(testCase.TestFolder);
+
+            testCase.addTeardown(@delete, testCase.Client, testCase.TestFolder)
         end
     end
     
@@ -38,7 +25,7 @@ classdef DropboxApiClientTest < matlab.unittest.TestCase
             
             % Test token expiry
             remainingTime = client1.TokenExpiresIn;
-            testCase.verifyTrue(isduration(remainingTime), 'Should return numeric value');
+            testCase.verifyTrue(isduration(remainingTime), 'Should return datetime value');
         end
 
         function testContinuousSearch(testCase)
@@ -172,7 +159,7 @@ classdef DropboxApiClientTest < matlab.unittest.TestCase
             testCase.verifyTrue(~isempty(entries));
             
             % Verify folder exists in listing
-            folderNames = string({entries.name});
+            folderNames = getNamesFromEntries(entries);
             testCase.verifyTrue(any(folderNames == "ListTest"));
         end
         
@@ -204,7 +191,7 @@ classdef DropboxApiClientTest < matlab.unittest.TestCase
             
             % Verify source no longer exists
             entries = testCase.Client.listFolder(testCase.TestFolder);
-            folderNames = string({entries.name});
+            folderNames = getNamesFromEntries(entries);
             testCase.verifyTrue(~any(folderNames == "MoveSource"));
             testCase.verifyTrue(any(folderNames == "MoveDest"));
         end
@@ -221,7 +208,7 @@ classdef DropboxApiClientTest < matlab.unittest.TestCase
             
             % Verify both source and destination exist
             entries = testCase.Client.listFolder(testCase.TestFolder);
-            folderNames = string({entries.name});
+            folderNames = getNamesFromEntries(entries);
             testCase.verifyTrue(any(folderNames == "CopySource"));
             testCase.verifyTrue(any(folderNames == "CopyDest"));
         end
@@ -261,4 +248,15 @@ classdef DropboxApiClientTest < matlab.unittest.TestCase
             end
         end
     end
+end
+
+function names = getNamesFromEntries(entries)
+    if isstruct(entries)
+        names = string({entries.name});
+    elseif iscell(entries)
+        names = cellfun(@(c) c.name, entries, 'UniformOutput', false);
+    else
+        error('Unexpected type')
+    end
+    names = string(names);
 end
