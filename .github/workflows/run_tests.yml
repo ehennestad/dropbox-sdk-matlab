@@ -29,6 +29,17 @@ jobs:
       # Checks-out the repository under $GITHUB_WORKSPACE, so the job can access it
       - name: Check out repo
         uses: actions/checkout@v3
+
+      - name: Start virtual display server (for tests with progress bar)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y xvfb
+          Xvfb :99 &
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+
+      - name: Assign GitHub secret to environment variable
+        env:
+          DropboxApiMATLAB: ${{ secrets.DROPBOX_API_REFRESH_TOKEN }}
       
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v2
