@@ -288,6 +288,28 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
             options = namedargs2cell(options);
             result = obj.transfer("copy", sourcePath, destinationPath, options{:});
         end
+
+        function result = delete(obj, pathName)
+        % delete - Delete a file or folder at a given path.
+        %
+        % If the path is a folder, all its contents will be deleted too.
+        % After deletion, it may still be possible to restore the file or folder
+        % using Dropbox's web interface.
+            arguments
+                obj
+                pathName (1,1) string
+            end
+            
+            pathName = obj.validatePathName(pathName);
+            parameters = struct('path', pathName);
+            
+            apiEndpoint = obj.getRPCEndpointURL("files/delete_v2");
+            responseData = obj.postRPC(apiEndpoint, parameters);
+            result = responseData.metadata;
+            if ~nargout
+                clear result
+            end
+        end
         
         function responseData = downloadFileContent(obj, filePath)
             arguments
