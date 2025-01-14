@@ -23,6 +23,9 @@
   <a href="https://github.com/ehennestad/dropbox-sdk-matlab/actions/workflows/run_tests.yml?query=event%3Apush+branch%3Amain">
    <img src="https://github.com/ehennestad/dropbox-sdk-matlab/actions/workflows/run_tests.yml/badge.svg?branch=main" alt="Run tests">
   </a>
+  <a href="https://github.com/ehennestad/dropbox-sdk-matlab/security/code-scanning">
+   <img src=".github/badges/code_issues.svg" alt="MATLAB Code Issues">
+  </a>
 </h4>
 
 <p align="center">
