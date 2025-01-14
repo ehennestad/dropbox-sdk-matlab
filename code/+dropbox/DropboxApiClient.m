@@ -75,8 +75,13 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
             folder = fullfile(targetFolder, fileparts(filePath));
             if ~isfolder(folder); mkdir(folder); end
             strLocalFilename = fullfile(targetFolder, filePath);
+            
+            % Need to pass filesize to the progress monitor:
+            fileMetadata = obj.getMetadata(filePath);
+            fileSizeBytes = fileMetadata.size;
 
-            downloadedFilePath = downloadFile(strLocalFilename, fileLinkURL);
+            downloadedFilePath = downloadFile(strLocalFilename, fileLinkURL, ...
+                "FileSizeBytes", fileSizeBytes);
         end
 
         function uploadFile(obj, filePathLocal, filePathRemote, options)
