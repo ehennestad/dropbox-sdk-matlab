@@ -71,9 +71,9 @@ jobs:
       # Use deploy key to push back to protected branch
       - name: Checkout repository using deploy key
         uses: actions/checkout@v4
-        #with:
-        #    ref: refs/heads/main
-        #    ssh-key: ${{ secrets.DEPLOY_KEY }}
+        with:
+            ref: refs/heads/main
+            ssh-key: ${{ secrets.DEPLOY_KEY }}
 
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v2
