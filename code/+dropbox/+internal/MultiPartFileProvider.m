@@ -49,7 +49,7 @@
         end
 
         methods (Access = protected)
-            function tf = reusable(obj)
+            function tf = reusable(~)
                 tf = true;
             end
         end
