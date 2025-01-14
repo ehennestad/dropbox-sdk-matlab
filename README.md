@@ -64,7 +64,7 @@ The first time you create a client you will be redirected to Dropbox for secure 
 ## Features
 
 ### Logging in
-This API Client uses a Dropbox App for authenticating with Dropbox using a PKCE authorization flow. Users are redirected to Dropbox in the browser, and can secureley enter credentials to log in. The Dropbox app can read the user's account info as well as file metadata and has read and write access to files. It is also possible to use your own Dropbox app, as demonstrated below.
+This API Client uses a Dropbox App for authenticating with Dropbox using a PKCE authorization flow. Users are redirected to Dropbox in the browser, and can secureley enter credentials to log in. The Dropbox app can read the user's account info as well as file metadata and has read and write access to files. It is also possible to use your own Dropbox app (details coming soon).
 
 ### Class methods
 The client has the following methods:
