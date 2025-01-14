@@ -12,7 +12,7 @@ classdef DropboxApiClientTest < matlab.unittest.TestCase
             testCase.Client = dropbox.DropboxApiClient();
             testCase.Client.createFolder(testCase.TestFolder);
 
-            testCase.addTeardown(@testCase.Client.delete, testCase.TestFolder)
+            testCase.addTeardown(@delete, testCase.Client, testCase.TestFolder)
         end
     end
     
@@ -159,7 +159,7 @@ classdef DropboxApiClientTest < matlab.unittest.TestCase
             testCase.verifyTrue(~isempty(entries));
             
             % Verify folder exists in listing
-            folderNames = string({entries.name});
+            folderNames = getNamesFromEntries(entries);
             testCase.verifyTrue(any(folderNames == "ListTest"));
         end
         
@@ -191,7 +191,7 @@ classdef DropboxApiClientTest < matlab.unittest.TestCase
             
             % Verify source no longer exists
             entries = testCase.Client.listFolder(testCase.TestFolder);
-            folderNames = string({entries.name});
+            folderNames = getNamesFromEntries(entries);
             testCase.verifyTrue(~any(folderNames == "MoveSource"));
             testCase.verifyTrue(any(folderNames == "MoveDest"));
         end
@@ -208,7 +208,7 @@ classdef DropboxApiClientTest < matlab.unittest.TestCase
             
             % Verify both source and destination exist
             entries = testCase.Client.listFolder(testCase.TestFolder);
-            folderNames = string({entries.name});
+            folderNames = getNamesFromEntries(entries);
             testCase.verifyTrue(any(folderNames == "CopySource"));
             testCase.verifyTrue(any(folderNames == "CopyDest"));
         end
@@ -248,4 +248,15 @@ classdef DropboxApiClientTest < matlab.unittest.TestCase
             end
         end
     end
+end
+
+function names = getNamesFromEntries(entries)
+    if isstruct(entries)
+        names = string({entries.name});
+    elseif iscell(entries)
+        names = cellfun(@(c) c.name, entries, 'UniformOutput', false);
+    else
+        error('Unexpected type')
+    end
+    names = string(names);
 end
