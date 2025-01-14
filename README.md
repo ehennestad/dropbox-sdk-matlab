@@ -36,6 +36,11 @@
   <a href="#references">References</a>
 </p>
 
+<p align="center">
+  <img width="745" alt="dropbox_download" src="https://github.com/user-attachments/assets/7154444f-a672-4dec-a1ca-3f5896dedd3e" />
+</p>
+
+
 ## Installation
 The Dropbox client can be installed from MATLAB's Addon manager or from the [FileExchange](https://se.mathworks.com/matlabcentral/fileexchange/179054-dropbox-file-api-client-upload-and-download-files).
 
