@@ -335,6 +335,33 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
             apiEndpoint = obj.getContentEndpointURL("files/download");
             responseData = obj.postContent(apiEndpoint, parameters, [], "WebOptions", webOpts);
         end
+        
+        function targetZipFile = downloadZip(obj, folderPath, targetFolder)
+            arguments
+                obj
+                folderPath (1,1) string = ""
+                targetFolder (1,1) string {mustBeFolder} = pwd
+            end
+            
+            folderPath = obj.validatePathName(folderPath);
+
+            parameters = struct( ...
+                "path", folderPath ...
+                );
+            webOpts = matlab.net.http.HTTPOptions(...
+                'ProgressMonitorFcn', @FileTransferProgressMonitor, ...
+                'UseProgressMonitor', true, ...
+                'ConnectTimeout', 20);
+
+            apiEndpoint = obj.getContentEndpointURL("files/download_zip");
+            responseData = obj.postContent(apiEndpoint, parameters, [], "WebOptions", webOpts);
+
+            [~, outputFileName] = fileparts(folderPath);
+            targetZipFile = fullfile(targetFolder, outputFileName + ".zip");
+            fid = fopen(targetZipFile, "w");
+            fwrite(fid, responseData);
+            fclose(fid);
+        end
 
         function fileLinkURL = getTemporaryDownloadLink(obj, filePath)
             arguments
