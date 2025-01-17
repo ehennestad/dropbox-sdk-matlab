@@ -71,10 +71,9 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
             end
             filePath = obj.validatePathName(filePath);
             fileLinkURL = obj.getTemporaryDownloadLink(filePath);
-            
-            folder = fullfile(targetFolder, fileparts(filePath));
-            if ~isfolder(folder); mkdir(folder); end
-            strLocalFilename = fullfile(targetFolder, filePath);
+
+            [~, fileName, ext] = fileparts(filePath);
+            strLocalFilename = fullfile(targetFolder, fileName+ext);
             
             % Need to pass filesize to the progress monitor:
             fileMetadata = obj.getMetadata(filePath);
@@ -114,6 +113,36 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
                 uploadFile(filePathLocal, fileLinkURL, "RequestMessage", req)
             else
                 obj.multipartUpload(filePathLocal, filePathRemote, optionalNvPairs{:})
+            end
+        end
+    
+        function downloadFolder(folderPath, targetFolderPath, options)
+        % downloadFolder - Download all files in a folder.
+            arguments
+                folderPath (1,1) string
+                targetFolderPath (1,1) string {mustBeFolder} = pwd
+                options.Recursive (1,1) logical = false
+            end
+        
+            folderInfo = dbClient.listFolder(folderPath);
+            
+            for i = 1:numel(folderInfo)
+                if isa(folderInfo, 'cell')
+                    fileInfo = folderInfo{i};
+                else
+                    fileInfo = folderInfo(i);
+                end
+        
+                if string(fileInfo.x_tag) == "file"
+                    dbClient.downloadFile(fileInfo.path_lower, targetFolderPath)
+                else % folder
+                    if options.Recursive
+                        targetFolderPath = targetFolderPath + "/" + fileInfo.name;
+                        if ~isfolder(targetFolderPath); mkdir(targetFolderPath); end
+                        dbClient.downloadFolder(folderPath, targetFolderPath, ...
+                            "Recursive", options.Recursive);
+                    end
+                end
             end
         end
     end
