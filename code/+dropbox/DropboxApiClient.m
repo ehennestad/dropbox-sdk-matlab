@@ -81,6 +81,10 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
 
             downloadedFilePath = downloadFile(strLocalFilename, fileLinkURL, ...
                 "FileSizeBytes", fileSizeBytes);
+
+            if ~nargout
+                clear downloadedFilePath
+            end
         end
 
         function uploadFile(obj, filePathLocal, filePathRemote, options)
@@ -135,7 +139,7 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
                 end
         
                 if string(fileInfo.x_tag) == "file"
-                    obj.downloadFile(fileInfo.path_lower, targetFolderPath)
+                    obj.downloadFile(fileInfo.path_lower, targetFolderPath);
                 else % folder
                     if options.Recursive
                         targetFolderPath = targetFolderPath + "/" + fileInfo.name;
