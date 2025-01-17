@@ -116,15 +116,16 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
             end
         end
     
-        function downloadFolder(folderPath, targetFolderPath, options)
+        function downloadFolder(obj, folderPath, targetFolderPath, options)
         % downloadFolder - Download all files in a folder.
             arguments
+                obj (1,1) dropbox.DropboxApiClient
                 folderPath (1,1) string
                 targetFolderPath (1,1) string {mustBeFolder} = pwd
                 options.Recursive (1,1) logical = false
             end
         
-            folderInfo = dbClient.listFolder(folderPath);
+            folderInfo = obj.listFolder(folderPath);
             
             for i = 1:numel(folderInfo)
                 if isa(folderInfo, 'cell')
@@ -134,12 +135,12 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
                 end
         
                 if string(fileInfo.x_tag) == "file"
-                    dbClient.downloadFile(fileInfo.path_lower, targetFolderPath)
+                    obj.downloadFile(fileInfo.path_lower, targetFolderPath)
                 else % folder
                     if options.Recursive
                         targetFolderPath = targetFolderPath + "/" + fileInfo.name;
                         if ~isfolder(targetFolderPath); mkdir(targetFolderPath); end
-                        dbClient.downloadFolder(folderPath, targetFolderPath, ...
+                        obj.downloadFolder(folderPath, targetFolderPath, ...
                             "Recursive", options.Recursive);
                     end
                 end
@@ -533,7 +534,7 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
 
         function result = postRPC(obj, apiEndpointUrl, parameters)
             arguments
-                obj (1,1)
+                obj (1,1) dropbox.DropboxApiClient
                 apiEndpointUrl (1,1) matlab.net.URI
                 parameters (1,:) struct = struct.empty
             end
@@ -558,7 +559,7 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
         
         function result = postContent(obj, apiEndpointUrl, parameters, data, options)
             arguments
-                obj (1,1)
+                obj (1,1) dropbox.DropboxApiClient
                 apiEndpointUrl (1,1) matlab.net.URI
                 parameters (1,:) struct = struct.empty
                 data = []
