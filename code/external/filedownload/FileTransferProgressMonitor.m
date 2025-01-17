@@ -302,12 +302,14 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         end
 
         function fileSizeBytes = getFileSizeBytes(obj)
-            if isempty(obj.Max) && ~isnan(obj.FileSizeBytes)
-                fileSizeBytes = obj.FileSizeBytes;
-            elseif isnan(obj.FileSizeBytes) && ~isempty(obj.Max)
+            if ~isempty(obj.Max)
                 fileSizeBytes = obj.Max;
             else
-                fileSizeBytes = nan;
+                fileSizeBytes = obj.FileSizeBytes;
+            end
+
+            if isnan(fileSizeBytes)
+                % Todo: Warn once
             end
         end
     end
