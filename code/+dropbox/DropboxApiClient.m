@@ -98,7 +98,7 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
                 options.Mute (1,1) logical = false
                 options.StrictConflict (1,1) logical = false
             end
-            filePathLocal = obj.validatePathName(filePathLocal);
+            filePathRemote = obj.validatePathName(filePathRemote);
 
             L = dir(filePathLocal);
             totalSize = L.bytes;
