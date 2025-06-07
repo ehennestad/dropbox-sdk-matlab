@@ -5,20 +5,22 @@ on:
   push:
     branches: [ "main" ]
     paths-ignore:
-      - 'setup.yml'
-      - 'config.yaml'
-      - 'README.md'
-      - 'tools/README.md'
-      - '.github/workflows/**'
-      - 'docs/reports/**'
+      - '*.md'
+      - '.github/**'
   pull_request:
     branches: [ "main" ]
+    paths-ignore:
+      - '*.md'
+      - '.github/**'
 
   # Allows for manually running this workflow from the Actions tab
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  # This workflow contains a single job called "test"
   test:
     name: Test toolbox code
     # The type of runner that the job will run on
@@ -28,7 +30,7 @@ jobs:
     steps:
       # Checks-out the repository under $GITHUB_WORKSPACE, so the job can access it
       - name: Check out repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Start virtual display server (for tests with progress bar)
         if: runner.os == 'Linux'
@@ -40,13 +42,14 @@ jobs:
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v2
 
-      # Check for MATLAB code issues in the project.
-      - name: Check for MATLAB code issues
-        uses: matlab-actions/run-command@v2
-        if: always()
+      - name: Install MatBox
+        uses: ehennestad/matbox/.github/actions/install-matbox@v0.9
+
+      - name: Check code and upload report
+        uses: ehennestad/matbox/.github/actions/check-code@v0.9
         with:
-          command: addpath(genpath("tools")), codecheckToolbox()     
-          
+          code_directory: 'code'
+      
       # Runs all tests in the project.
       - name: Run tests
         uses: matlab-actions/run-command@v2
@@ -56,22 +59,12 @@ jobs:
         with:
           command: addpath(genpath("tools")), testToolbox()
 
-      # Commit updated SVG badges for the issues and tests (if changed)
-      - name: Commit svg badges if updated
-        if: always()
-        continue-on-error: true
-        run: |
-          git config user.name "${{ github.workflow }} by ${{ github.actor }}"
-          git config user.email "<>"
-          git fetch
-
-          if [[ $(git add .github/badges/* --dry-run | wc -l) -gt 0 ]]; then
-            git add .github/badges/*
-            git commit -m "Update code issues and tests badges"
-            git push -f
-          else
-            echo "Nothing to commit"
-          fi
+      - name: Commit SVG badges if updated
+        if: always() && ( github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository )
+        uses: ehennestad/matbox/.github/actions/push-badges@v0.9
+        with:
+          pr-ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
+          pr-repo: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
 
       - name: Upload code coverage report to Codecov
         uses: codecov/codecov-action@v4
