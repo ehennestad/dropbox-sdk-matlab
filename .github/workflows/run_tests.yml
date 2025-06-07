@@ -30,7 +30,7 @@ jobs:
     steps:
       # Checks-out the repository under $GITHUB_WORKSPACE, so the job can access it
       - name: Check out repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Start virtual display server (for tests with progress bar)
         if: runner.os == 'Linux'
