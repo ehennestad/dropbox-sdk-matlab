@@ -1,0 +1,87 @@
+name: Prepare toolbox release (modular)
+
+# CONFIGURATION GUIDE:
+# This workflow uses modular reusable job workflows that can be customized by changing the values below.
+# To customize for your project, find and replace these values throughout the workflow:
+#
+# 1. SOURCE_DIRECTORY (default: 'src')
+#    - Directory containing your MATLAB source code (relative to repository root)
+#    - Find: source_directory: src
+#    - Replace with your source directory, e.g.: source_directory: src
+#
+# 2. TESTS_DIRECTORY (default: 'tests')
+#    - Directory containing your MATLAB test suites (relative to repository root)
+#    - Find: tests_directory: tests
+#    - Replace with your tests directory, e.g.: tests_directory: unittests
+#
+# 3. TOOLS_DIRECTORY (default: 'tools') 
+#    - Directory containing tools and MLToolboxInfo.json (relative to repository root)
+#    - Find: tools_directory: tools
+#    - Replace with your tools directory, e.g.: tools_directory: build
+#
+# 4. NEEDS_PYTHON (default: false)
+#    - Set to true if your toolbox requires Python for testing
+#    - This includes Python versions in test matrix and sets up Python environments
+#    - Find: needs_python: false
+#    - Replace with: needs_python: true (if Python is required)
+#
+# 5. MATLAB_PRODUCTS (default: '')
+#    - Optional MATLAB products to install during testing (space-separated list)
+#    - Find: matlab_products: ''
+#    - Replace with products, e.g.: matlab_products: 'Simulink Signal_Processing_Toolbox'
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+' # Matches tags like v1.2.3
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number in major.minor.patch format'
+        required: true
+        type: string
+
+jobs:
+  validate_version:
+    name: Validate version number
+    uses: ehennestad/matbox-actions/.github/workflows/validate-version-job.yml@v1
+    with:
+      version: ${{ inputs.version }}
+      ref_name: ${{ github.ref_name }}
+
+  configure_test_matrix:
+    name: Configure release test matrix
+    uses: ehennestad/matbox-actions/.github/workflows/configure-matrix-job.yml@v1
+    with:
+      tools_directory: tools
+      needs_python: false
+
+  test:
+    name: Run MATLAB tests (release matrix)
+    needs: [validate_version, configure_test_matrix]
+    uses: ehennestad/matbox-actions/.github/workflows/run-test-matrix-job.yml@v1
+    with:
+      source_directory: src
+      tests_directory: tests
+      tools_directory: tools
+      matlab_products: ''
+      needs_python: false
+      matrix_json: ${{ needs.configure_test_matrix.outputs.matrix }}
+
+  release:
+    name: Package toolbox and create draft release
+    needs: [test, validate_version]
+    uses: ehennestad/matbox-actions/.github/workflows/package-toolbox-job.yml@v1
+    with:
+      version_number: ${{ needs.validate_version.outputs.version_number }}
+      source_directory: src
+      tools_directory: tools
+    secrets:
+      DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+
+  verify_installation:
+    name: Verify toolbox installation
+    needs: [release, validate_version]
+    uses: ehennestad/matbox-actions/.github/workflows/verify-installation-job.yml@v1
+    with:
+      toolbox_name: ${{ needs.release.outputs.toolbox_name }}
