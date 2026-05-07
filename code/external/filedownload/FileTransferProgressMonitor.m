@@ -404,10 +404,20 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
 
     methods (Static, Access = private)
         function tf = isWebBasedUIFigure(fig)
+            % uiprogressdlg is supported for uifigures or all figures 
+            % starting from R2025a
             tf = ~isempty(fig) ...
                 && isscalar(fig) ...
                 && isgraphics(fig, 'figure') ...
-                && isprop(fig, 'isUIFigure');
+                && (isprop(fig, 'isUIFigure') || isMATLABRelease2025aOrNewer());
         end
+    end
+end
+
+function tf = isMATLABRelease2025aOrNewer()
+    try
+        tf = ~isMATLABReleaseOlderThan("R2025a");
+    catch % isMATLABReleaseOlderThan was introduced in R2020b
+        tf = false; 
     end
 end
