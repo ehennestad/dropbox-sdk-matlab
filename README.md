@@ -20,8 +20,8 @@
   <a href="https://codecov.io/gh/ehennestad/dropbox-sdk-matlab" >
    <img src="https://codecov.io/gh/ehennestad/dropbox-sdk-matlab/graph/badge.svg?token=Z2L1HGYAPV" alt="Codecov"/>  
   </a>
-  <a href="https://github.com/ehennestad/dropbox-sdk-matlab/actions/workflows/run_tests.yml/badge.svg?branch=main">
-   <img src="https://github.com/ehennestad/dropbox-sdk-matlab/actions/workflows/run_tests.yml/badge.svg?branch=main" alt="Run tests">
+  <a href="https://github.com/ehennestad/dropbox-sdk-matlab/actions/workflows/test-code.yml/badge.svg?branch=main">
+   <img src="https://github.com/ehennestad/dropbox-sdk-matlab/actions/workflows/test-code.yml/badge.svg?branch=main" alt="Run tests">
   </a>
   <a href="https://github.com/ehennestad/dropbox-sdk-matlab/security/code-scanning">
    <img src=".github/badges/code_issues.svg" alt="MATLAB Code Issues">
