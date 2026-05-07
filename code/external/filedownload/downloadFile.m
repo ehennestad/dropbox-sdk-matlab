@@ -5,18 +5,20 @@ function strLocalFilename = downloadFile(strLocalFilename, strURLFilename, optio
 %   specified by the url strURLFilename to the local path specified by
 %   strLocalFile
 %
-%   strLocalFilename = downloadFile(localFilename, strURLFilename) 
+%   strLocalFilename = downloadFile(localFilename, strURLFilename)
 %   downloads the file and returns the absolute path of the downloaded file
 %
-%   Options for the progress display:
+%   Options:
 %       DisplayMode     : Where to display progress. Options: 'Dialog Box' (default) or 'Command Window'
 %       UpdateInterval  : Interval (in seconds) for updating progress. Default = 1 second.
 %       ShowFilename    : Whether to show name of downloaded file. Default = false.
 %       IndentSize      : Size of indentation if displaying progress in command window.
+%       Figure          : Parent figure for uiprogressdlg. Default = [].
+%       FileSizeBytes   : Known file size when HTTP progress size is unavailable. Default = NaN.
 
-%   Written by Eivind Hennestad | v1.0.6
+%   Written by Eivind Hennestad
 
-    arguments 
+    arguments
         strLocalFilename       char         {mustBeNonempty}
         strURLFilename         char         {mustBeValidUrl}
         options.DisplayMode    char         {mustBeValidDisplay} = 'Dialog Box'
@@ -24,6 +26,7 @@ function strLocalFilename = downloadFile(strLocalFilename, strURLFilename, optio
         options.ShowFilename   (1,1) logical                     = false
         options.IndentSize     (1,1) uint8                       = 0
         options.Figure         {mustBeFigureOrEmpty}             = []
+        options.FileSizeBytes  (1,1) double                      = nan
     end
 
     if options.ShowFilename
@@ -38,7 +41,8 @@ function strLocalFilename = downloadFile(strLocalFilename, strURLFilename, optio
         'UpdateInterval', options.UpdateInterval, ...
         'Filename', filename, ...
         'IndentSize', options.IndentSize, ...
-        'Figure', options.Figure };
+        'Figure', options.Figure, ...
+        'FileSizeBytes', options.FileSizeBytes };
     
     webOpts = matlab.net.http.HTTPOptions(...
         'ProgressMonitorFcn', @(opts) FileTransferProgressMonitor(monitorOpts{:}),...
@@ -60,5 +64,4 @@ function strLocalFilename = downloadFile(strLocalFilename, strURLFilename, optio
     if nargout < 1
         clear strLocalFilename
     end
-    
 end

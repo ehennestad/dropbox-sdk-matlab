@@ -14,10 +14,12 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
 %       UpdateInterval  : Interval (in seconds) for updating progress. Default = 1 second.
 %       Filename        : Name of transferred file. If provided, filename is displayed during download/upload.
 %       IndentSize      : Size of indentation if displaying progress in command window. Default = 0.
+%       Figure          : Parent figure for uiprogressdlg. Default = [].
+%       FileSizeBytes   : Known file size when ProgressMonitor.Max is unavailable. Default = NaN.
 
 %   Inspired by example in matlab.net.http.ProgressMonitor
 %
-%   Written by Eivind Hennestad | v1.0.5
+%   Written by Eivind Hennestad
     
     properties (SetAccess = private) % User settings for monitor
         DisplayMode = 'Dialog Box'; % Where to display progress.
@@ -25,6 +27,10 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         Filename = ''               % Name of downloaded/uploaded file.
         IndentSize = 0              % Size of indentation (number of spaces) if displaying progress in command window.
         Figure = []                 % Parent figure for uiprogressdlg.
+    end
+
+    properties
+        FileSizeBytes = nan         % Known file size when ProgressMonitor.Max is not available.
     end
 
     properties % Implement superclass properties (matlab.net.http.ProgressMonitor)
@@ -42,7 +48,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         UseCommandWindow            % Whether to display progress in the command window
     end
 
-    properties (Access = private)
+    properties (Access = protected)
         StartTime                   % Time when transfer started
         LastUpdateTime              % Time when progress was last updated
         HasTransferStarted = false  % Whether download or upload has started
@@ -84,7 +90,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         
         function set.Direction(obj, dir)
             obj.Direction = dir;
-            %fprintf('Direction set: %s\n', obj.Direction)
+            % fprintf('Direction set: %s\n', obj.Direction)
         end
         
         function set.Value(obj, value)
@@ -103,15 +109,15 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         end
 
         function fileSizeMb = get.FileSizeMb(obj)
-            fileSizeMb = round( double(obj.Max) / 1024 / 1024 );
+            fileSizeMb = obj.getFileSizeMb();
         end
 
-        function TransferredMb = get.TransferredMb(obj)
-            TransferredMb = round( double(obj.Value) / 1024 / 1024 );
+        function transferredMb = get.TransferredMb(obj)
+            transferredMb = obj.getTransferredMb();
         end
 
-        function PercentTransferred = get.PercentTransferred(obj)
-            PercentTransferred = double(obj.Value)/double(obj.Max)*100;
+        function percentTransferred = get.PercentTransferred(obj)
+            percentTransferred = obj.computePercentTransferred();
         end
 
         function tf = get.UseWaitbarDialog(obj)
@@ -129,7 +135,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         end
     end
     
-    methods (Access = private)
+    methods (Access = protected)
 
         function update(obj, ~)
         %update Called when Value is set, handles monitor updating
@@ -140,8 +146,8 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
 
             if ~isempty(obj.Value) && doUpdate
                 
-                if isempty(obj.Max)
-                    % Maxmimum (size of request/response) is not known, 
+                if isempty(obj.Max) && isnan(obj.FileSizeBytes)
+                    % Maxmimum (size of request/response) is not known,
                     % file transfer did not start yet.
                     progressValue = 0;
                     msg = sprintf('Waiting for %s to start...', lower(obj.ActionName));
@@ -153,7 +159,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
                         msg = obj.getProgressMessage();
                         obj.HasTransferStarted = true;
 
-                    elseif obj.Direction == MessageType.Response 
+                    elseif obj.Direction == MessageType.Response
                         if ~obj.HasTransferStarted
                             obj.HasTransferStarted = true;
                         end
@@ -203,7 +209,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
             end
             
             function cancelAndClose(obj)
-                % Call the required CancelFcn and then close our progress bar. 
+                % Call the required CancelFcn and then close our progress bar.
                 % This is called when user clicks cancel or closes the window.
                 obj.CancelFcn();
                 obj.closeWaitbar();
@@ -226,10 +232,9 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
             fprintf('%s\n%s', deletePrevStr, msgStr);
             obj.PreviousMessage = msgStr;
         end
-
     end
     
-    methods (Access = private)
+    methods (Access = protected)
         function updateProgressDialog(obj, progressValue, msg)
             if obj.cancelWasRequested()
                 obj.CancelFcn();
@@ -270,8 +275,8 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         end
 
         function closeWaitbar(obj)
-            % Close the progress waitbar by deleting the handle so 
-            % CloseRequestFcn isn't called, because waitbar calls 
+            % Close the progress waitbar by deleting the handle so
+            % CloseRequestFcn isn't called, because waitbar calls
             % cancelAndClose(), which would cause recursion.
             if ~isempty(obj.WaitbarHandle)
                 delete(obj.WaitbarHandle);
@@ -280,12 +285,12 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         end
     end
 
-    methods (Access = private) % Format messages for display
+    methods (Access = protected) % Format messages for display
 
         function titleStr = getProgressTitle(obj)
             
             % Make ongoing present action verb, i.e [Download]ing or [Upload]ing
-            action = sprintf('%sing', obj.ActionName); 
+            action = sprintf('%sing', obj.ActionName);
 
             if ~isempty(obj.Filename)
                 if numel(char(obj.Filename)) <= 26
@@ -336,7 +341,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         end
     
         function str = getRemainingTimeEstimate(obj)
-        %getRemainingTimeEstimate Get string with estimated time remaining        
+        %getRemainingTimeEstimate Get string with estimated time remaining
             tElapsed = seconds( toc(obj.StartTime) );
             tRemaining = round( (tElapsed ./ obj.PercentTransferred) .* (100-obj.PercentTransferred) );
 
@@ -356,6 +361,32 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
             durationMessage = sprintf('Completed in %s. \n', tElapsedStr);
 
             strMessage = strjoin({strMessage, durationMessage});
+        end
+
+        function percentTransferred = computePercentTransferred(obj)
+            fileSizeBytes = obj.getFileSizeBytes();
+            percentTransferred = double(obj.Value) / double(fileSizeBytes) * 100;
+        end
+
+        function fileSizeMb = getFileSizeMb(obj)
+            fileSizeBytes = obj.getFileSizeBytes();
+            fileSizeMb = round( double(fileSizeBytes) / 1024 / 1024 );
+        end
+
+        function transferredMb = getTransferredMb(obj)
+            transferredMb = round( double(obj.Value) / 1024 / 1024 );
+        end
+
+        function fileSizeBytes = getFileSizeBytes(obj)
+            if ~isempty(obj.Max)
+                fileSizeBytes = obj.Max;
+            else
+                fileSizeBytes = obj.FileSizeBytes;
+            end
+
+            if isnan(fileSizeBytes)
+                % Todo: Warn once
+            end
         end
     end
 
@@ -377,7 +408,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         end
             
         function durationStr = formatTimeAsString(durationValue)
-        %formatTimeAsString Format time showing the leading unit.    
+        %formatTimeAsString Format time showing the leading unit.
             if hours(durationValue) > 1
                 durationUnit = 'hour';
                 durationValueInt = round(hours(durationValue));
@@ -402,9 +433,9 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         end
     end
 
-    methods (Static, Access = private)
+    methods (Static, Access = protected)
         function tf = isWebBasedUIFigure(fig)
-            % uiprogressdlg is supported for uifigures or all figures 
+            % uiprogressdlg is supported for uifigures or all figures
             % starting from R2025a
             tf = ~isempty(fig) ...
                 && isscalar(fig) ...
@@ -418,6 +449,6 @@ function tf = isMATLABRelease2025aOrNewer()
     try
         tf = ~isMATLABReleaseOlderThan("R2025a");
     catch % isMATLABReleaseOlderThan was introduced in R2020b
-        tf = false; 
+        tf = false;
     end
 end

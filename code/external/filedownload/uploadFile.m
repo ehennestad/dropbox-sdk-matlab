@@ -2,26 +2,28 @@ function [wasSuccess, response] = uploadFile(strLocalFilename, strURLFilename, o
 %uploadFile Upload a file to web while displaying progress.
 %
 %   uploadFile(strLocalFilename, strURLFilename) uploads the file
-%   specified by the local path `strLocalFilename` to the web location 
+%   specified by the local path `strLocalFilename` to the web location
 %   specified by `strURLFilename`.
 %
 %   wasSuccess = uploadFile(localFilename, strURLFilename) uploads the file
 %   and returns a boolean value indicating if the upload was successful or
 %   not.
 %
-%   [wasSuccess, response] = uploadFile(localFilename, strURLFilename) 
+%   [wasSuccess, response] = uploadFile(localFilename, strURLFilename)
 %   uploads the file and returns the wasSuccess boolean and a response
 %   object.
 %
-%   Options for the progress display:
+%   Options:
 %       DisplayMode     : Where to display progress. Options: 'Dialog Box' (default) or 'Command Window'
 %       UpdateInterval  : Interval (in seconds) for updating progress. Default = 1 second.
 %       ShowFilename    : Whether to show name of uploaded file. Default = false.
 %       IndentSize      : Size of indentation if displaying progress in command window.
+%       Figure          : Parent figure for uiprogressdlg. Default = [].
+%       RequestMessage  : Custom request message. Its body is replaced with the local file provider.
 
-%   Written by Eivind Hennestad | v1.0.6
+%   Written by Eivind Hennestad
 
-    arguments 
+    arguments
         strLocalFilename       char         {mustBeNonempty}
         strURLFilename         char         {mustBeValidUrl}
         options.DisplayMode    char         {mustBeValidDisplay} = 'Dialog Box'
@@ -29,6 +31,7 @@ function [wasSuccess, response] = uploadFile(strLocalFilename, strURLFilename, o
         options.ShowFilename   (1,1) logical                     = false
         options.IndentSize     (1,1) uint8                       = 0
         options.Figure         {mustBeFigureOrEmpty}             = []
+        options.RequestMessage matlab.net.http.RequestMessage    = []
     end
 
     if options.ShowFilename
@@ -52,9 +55,14 @@ function [wasSuccess, response] = uploadFile(strLocalFilename, strURLFilename, o
 
     % Create a file provider for uploading the file
     provider = matlab.net.http.io.FileProvider(strLocalFilename);
-    
-    method = matlab.net.http.RequestMethod.PUT;
-    req = matlab.net.http.RequestMessage(method, [], provider);
+
+    if isempty(options.RequestMessage)
+        method = matlab.net.http.RequestMethod.PUT;
+        req = matlab.net.http.RequestMessage(method, [], provider);
+    else
+        req = options.RequestMessage;
+        req.Body = provider;
+    end
     
     strURLFilename = matlab.net.URI(strURLFilename);
     
