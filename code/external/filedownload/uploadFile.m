@@ -2,14 +2,14 @@ function [wasSuccess, response] = uploadFile(strLocalFilename, strURLFilename, o
 %uploadFile Upload a file to web while displaying progress.
 %
 %   uploadFile(strLocalFilename, strURLFilename) uploads the file
-%   specified by the local path `strLocalFilename` to the web location
+%   specified by the local path `strLocalFilename` to the web location 
 %   specified by `strURLFilename`.
 %
 %   wasSuccess = uploadFile(localFilename, strURLFilename) uploads the file
 %   and returns a boolean value indicating if the upload was successful or
 %   not.
 %
-%   [wasSuccess, response] = uploadFile(localFilename, strURLFilename)
+%   [wasSuccess, response] = uploadFile(localFilename, strURLFilename) 
 %   uploads the file and returns the wasSuccess boolean and a response
 %   object.
 %
@@ -21,14 +21,14 @@ function [wasSuccess, response] = uploadFile(strLocalFilename, strURLFilename, o
 
 %   Written by Eivind Hennestad | v1.0.6
 
-    arguments
+    arguments 
         strLocalFilename       char         {mustBeNonempty}
         strURLFilename         char         {mustBeValidUrl}
         options.DisplayMode    char         {mustBeValidDisplay} = 'Dialog Box'
         options.UpdateInterval (1,1) double {mustBePositive}     = 1
         options.ShowFilename   (1,1) logical                     = false
         options.IndentSize     (1,1) uint8                       = 0
-        options.RequestMessage matlab.net.http.RequestMessage    = []
+        options.Figure         {mustBeFigureOrEmpty}             = []
     end
 
     if options.ShowFilename
@@ -42,7 +42,8 @@ function [wasSuccess, response] = uploadFile(strLocalFilename, strURLFilename, o
         'DisplayMode', options.DisplayMode, ...
         'UpdateInterval', options.UpdateInterval, ...
         'Filename', filename, ...
-        'IndentSize', options.IndentSize };
+        'IndentSize', options.IndentSize, ...
+        'Figure', options.Figure };
     
     webOpts = matlab.net.http.HTTPOptions(...
         'ProgressMonitorFcn', @(opts) FileTransferProgressMonitor(monitorOpts{:}),...
@@ -51,14 +52,9 @@ function [wasSuccess, response] = uploadFile(strLocalFilename, strURLFilename, o
 
     % Create a file provider for uploading the file
     provider = matlab.net.http.io.FileProvider(strLocalFilename);
-
-    if isempty(options.RequestMessage)
-        method = matlab.net.http.RequestMethod.PUT;
-        req = matlab.net.http.RequestMessage(method, [], provider);
-    else
-        req = options.RequestMessage;
-        req.Body = provider;
-    end
+    
+    method = matlab.net.http.RequestMethod.PUT;
+    req = matlab.net.http.RequestMessage(method, [], provider);
     
     strURLFilename = matlab.net.URI(strURLFilename);
     
@@ -79,19 +75,5 @@ function [wasSuccess, response] = uploadFile(strLocalFilename, strURLFilename, o
 
     if nargout < 2
         clear response
-    end
-end
-
-%% Custom validation functions
-
-function mustBeValidDisplay(displayName)
-    mustBeMember(displayName, {'Dialog Box', 'Command Window'})
-end
-
-function mustBeValidUrl(urlString)
-    try
-        matlab.internal.webservices.urlencode(urlString);
-    catch ME
-        throwAsCaller(ME)
     end
 end

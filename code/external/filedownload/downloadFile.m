@@ -5,7 +5,7 @@ function strLocalFilename = downloadFile(strLocalFilename, strURLFilename, optio
 %   specified by the url strURLFilename to the local path specified by
 %   strLocalFile
 %
-%   strLocalFilename = downloadFile(localFilename, strURLFilename)
+%   strLocalFilename = downloadFile(localFilename, strURLFilename) 
 %   downloads the file and returns the absolute path of the downloaded file
 %
 %   Options for the progress display:
@@ -16,14 +16,14 @@ function strLocalFilename = downloadFile(strLocalFilename, strURLFilename, optio
 
 %   Written by Eivind Hennestad | v1.0.6
 
-    arguments
+    arguments 
         strLocalFilename       char         {mustBeNonempty}
         strURLFilename         char         {mustBeValidUrl}
         options.DisplayMode    char         {mustBeValidDisplay} = 'Dialog Box'
         options.UpdateInterval (1,1) double {mustBePositive}     = 1
         options.ShowFilename   (1,1) logical                     = false
         options.IndentSize     (1,1) uint8                       = 0
-        options.FileSizeBytes  (1,1) double                      = nan
+        options.Figure         {mustBeFigureOrEmpty}             = []
     end
 
     if options.ShowFilename
@@ -38,7 +38,7 @@ function strLocalFilename = downloadFile(strLocalFilename, strURLFilename, optio
         'UpdateInterval', options.UpdateInterval, ...
         'Filename', filename, ...
         'IndentSize', options.IndentSize, ...
-        'FileSizeBytes', options.FileSizeBytes};
+        'Figure', options.Figure };
     
     webOpts = matlab.net.http.HTTPOptions(...
         'ProgressMonitorFcn', @(opts) FileTransferProgressMonitor(monitorOpts{:}),...
@@ -60,18 +60,5 @@ function strLocalFilename = downloadFile(strLocalFilename, strURLFilename, optio
     if nargout < 1
         clear strLocalFilename
     end
-end
-
-%% Custom validation functions
-
-function mustBeValidDisplay(displayName)
-    mustBeMember(displayName, {'Dialog Box', 'Command Window'})
-end
-
-function mustBeValidUrl(urlString)
-    try
-        matlab.internal.webservices.urlencode(urlString);
-    catch ME
-        throwAsCaller(ME)
-    end
+    
 end
