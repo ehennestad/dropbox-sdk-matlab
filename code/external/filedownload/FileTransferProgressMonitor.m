@@ -307,27 +307,21 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         function strMessage = getProgressMessage(obj)
         %getProgressMessage Get message with information about progress
             
-            strMessage = obj.getTransferStatus();
+            strTransferStatus = obj.getTransferStatus();
             strRemainingTime = obj.getRemainingTimeEstimate();
-            if ~isempty(strRemainingTime)
-                strMessage = strjoin({strMessage, strRemainingTime});
-            end
-            
-            % "Animate" ellipsis
-            if isempty(obj.PreviousMessage)
-                % Skip
-            elseif strcmp( obj.PreviousMessage(end-2:end), '...')
-                strMessage(end-1:end) = []; % Remove two dots, one remaining
-            elseif strcmp( obj.PreviousMessage(end-1:end), '..')
-                % Keep three dots.
-            else
-                strMessage(end) = []; % Remove last dot, two remaining
-            end
 
-            % Split to cell array
-            splitIndex = strfind(strMessage, "Estimat")-1;
-            if ~isempty(splitIndex)
-                strMessage = {extractBefore(strMessage, splitIndex), extractAfter(strMessage, splitIndex)};
+            if ~isempty(strRemainingTime)
+                % "Animate" ellipsis on the remaining time string
+                prev = obj.PreviousMessage;
+                if numel(prev) >= 3 && strcmp( prev(end-2:end), '...')
+                    strRemainingTime(end-1:end) = []; % Remove two dots, one remaining
+                elseif numel(prev) >= 2 && ~strcmp( prev(end-1:end), '..')
+                    strRemainingTime(end) = []; % Remove last dot, two remaining
+                end
+                % else: previous ended with '..', keep three dots
+                strMessage = {strTransferStatus, strRemainingTime};
+            else
+                strMessage = strTransferStatus;
             end
         end
 
