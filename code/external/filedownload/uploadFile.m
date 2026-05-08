@@ -13,13 +13,15 @@ function [wasSuccess, response] = uploadFile(strLocalFilename, strURLFilename, o
 %   uploads the file and returns the wasSuccess boolean and a response
 %   object.
 %
-%   Options for the progress display:
+%   Options:
 %       DisplayMode     : Where to display progress. Options: 'Dialog Box' (default) or 'Command Window'
 %       UpdateInterval  : Interval (in seconds) for updating progress. Default = 1 second.
 %       ShowFilename    : Whether to show name of uploaded file. Default = false.
 %       IndentSize      : Size of indentation if displaying progress in command window.
+%       Figure          : Parent figure for uiprogressdlg. Default = [].
+%       RequestMessage  : Custom request message. Its body is replaced with the local file provider.
 
-%   Written by Eivind Hennestad | v1.0.6
+%   Written by Eivind Hennestad
 
     arguments
         strLocalFilename       char         {mustBeNonempty}
@@ -28,6 +30,7 @@ function [wasSuccess, response] = uploadFile(strLocalFilename, strURLFilename, o
         options.UpdateInterval (1,1) double {mustBePositive}     = 1
         options.ShowFilename   (1,1) logical                     = false
         options.IndentSize     (1,1) uint8                       = 0
+        options.Figure         {mustBeFigureOrEmpty}             = []
         options.RequestMessage matlab.net.http.RequestMessage    = []
     end
 
@@ -42,7 +45,8 @@ function [wasSuccess, response] = uploadFile(strLocalFilename, strURLFilename, o
         'DisplayMode', options.DisplayMode, ...
         'UpdateInterval', options.UpdateInterval, ...
         'Filename', filename, ...
-        'IndentSize', options.IndentSize };
+        'IndentSize', options.IndentSize, ...
+        'Figure', options.Figure };
     
     webOpts = matlab.net.http.HTTPOptions(...
         'ProgressMonitorFcn', @(opts) FileTransferProgressMonitor(monitorOpts{:}),...
@@ -79,19 +83,5 @@ function [wasSuccess, response] = uploadFile(strLocalFilename, strURLFilename, o
 
     if nargout < 2
         clear response
-    end
-end
-
-%% Custom validation functions
-
-function mustBeValidDisplay(displayName)
-    mustBeMember(displayName, {'Dialog Box', 'Command Window'})
-end
-
-function mustBeValidUrl(urlString)
-    try
-        matlab.internal.webservices.urlencode(urlString);
-    catch ME
-        throwAsCaller(ME)
     end
 end

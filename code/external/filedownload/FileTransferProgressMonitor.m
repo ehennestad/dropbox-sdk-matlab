@@ -14,20 +14,23 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
 %       UpdateInterval  : Interval (in seconds) for updating progress. Default = 1 second.
 %       Filename        : Name of transferred file. If provided, filename is displayed during download/upload.
 %       IndentSize      : Size of indentation if displaying progress in command window. Default = 0.
+%       Figure          : Parent figure for uiprogressdlg. Default = [].
+%       FileSizeBytes   : Known file size when ProgressMonitor.Max is unavailable. Default = NaN.
 
 %   Inspired by example in matlab.net.http.ProgressMonitor
 %
-%   Written by Eivind Hennestad | v1.0.5
+%   Written by Eivind Hennestad
     
     properties (SetAccess = private) % User settings for monitor
         DisplayMode = 'Dialog Box'; % Where to display progress.
         UpdateInterval = 1          % Interval (in seconds) for updating progress.
         Filename = ''               % Name of downloaded/uploaded file.
         IndentSize = 0              % Size of indentation (number of spaces) if displaying progress in command window.
+        Figure = []                 % Parent figure for uiprogressdlg.
     end
 
     properties
-        FileSizeBytes = nan
+        FileSizeBytes = nan         % Known file size when ProgressMonitor.Max is not available.
     end
 
     properties % Implement superclass properties (matlab.net.http.ProgressMonitor)
@@ -41,6 +44,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         TransferredMb               % Size of currently transferred data in megabytes
         PercentTransferred          % Percent of file downloaded/uploaded
         UseWaitbarDialog            % Whether to display progress in a waitbar dialog
+        UseUIProgressDialog         % Whether to display progress in a uiprogressdlg.
         UseCommandWindow            % Whether to display progress in the command window
     end
 
@@ -49,6 +53,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         LastUpdateTime              % Time when progress was last updated
         HasTransferStarted = false  % Whether download or upload has started
         WaitbarHandle               % Handle to waitbar dialog
+        ProgressDialogHandle        % Handle to uiprogressdlg.
         PreviousMessage = ''        % Previous message displayed in command window
     end
     
@@ -68,7 +73,9 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         end
         
         function done(obj)
-            if ~isempty(obj.WaitbarHandle) && obj.UseWaitbarDialog
+            if ~isempty(obj.ProgressDialogHandle)
+                obj.closeProgressDialog();
+            elseif ~isempty(obj.WaitbarHandle)
                 obj.closeWaitbar();
             elseif ~isempty(obj.PreviousMessage) && obj.UseCommandWindow
                 msgStr = obj.getTransferCompletedMessage();
@@ -77,6 +84,7 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         end
         
         function delete(obj)
+            obj.closeProgressDialog();
             obj.closeWaitbar();
         end
         
@@ -108,12 +116,18 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
             transferredMb = obj.getTransferredMb();
         end
 
-        function PercentTransferred = get.PercentTransferred(obj)
-            PercentTransferred = obj.computePercentTransferred();
+        function percentTransferred = get.PercentTransferred(obj)
+            percentTransferred = obj.computePercentTransferred();
         end
 
         function tf = get.UseWaitbarDialog(obj)
-            tf = strcmpi(obj.DisplayMode, 'Dialog Box');
+            tf = strcmpi(obj.DisplayMode, 'Dialog Box') ...
+                && ~FileTransferProgressMonitor.isWebBasedUIFigure(obj.Figure);
+        end
+
+        function tf = get.UseUIProgressDialog(obj)
+            tf = strcmpi(obj.DisplayMode, 'Dialog Box') ...
+                && FileTransferProgressMonitor.isWebBasedUIFigure(obj.Figure);
         end
 
         function tf = get.UseCommandWindow(obj)
@@ -155,7 +169,19 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
                     end
                 end
 
-                if isempty(obj.WaitbarHandle) && obj.UseWaitbarDialog
+                if obj.cancelWasRequested()
+                    obj.CancelFcn();
+                    obj.closeProgressDialog();
+                    return
+                end
+
+                if isempty(obj.ProgressDialogHandle) && obj.UseUIProgressDialog
+                    obj.ProgressDialogHandle = uiprogressdlg(obj.Figure, ...
+                        'Title', obj.getProgressTitle(), ...
+                        'Message', msg, ...
+                        'Value', progressValue, ...
+                        'Cancelable', 'on');
+                elseif isempty(obj.WaitbarHandle) && obj.UseWaitbarDialog
                     % If we don't have a progress bar, display it for first time
                     obj.WaitbarHandle = waitbar(progressValue, msg, ...
                         'Name', obj.getProgressTitle(), ...
@@ -163,11 +189,16 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
                 elseif isempty(obj.PreviousMessage) && obj.UseCommandWindow
                     indentStr = repmat(' ', 1, obj.IndentSize);
                     fprintf('%s%s', indentStr, obj.getProgressTitle() )
+                    if ~ischar(msg) && ~isscalar(msg)
+                        msg = strjoin(msg, ' ');
+                    end
                     obj.updateCommandWindowMessage(msg)
                 end
 
                 if obj.HasTransferStarted
-                    if obj.UseWaitbarDialog
+                    if obj.UseUIProgressDialog
+                        obj.updateProgressDialog(progressValue, msg);
+                    elseif obj.UseWaitbarDialog
                         waitbar(progressValue, obj.WaitbarHandle, msg);
                     else
                         obj.updateCommandWindowMessage(msg)
@@ -204,6 +235,45 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
     end
     
     methods (Access = protected)
+        function updateProgressDialog(obj, progressValue, msg)
+            if obj.cancelWasRequested()
+                obj.CancelFcn();
+                obj.closeProgressDialog();
+                return
+            end
+
+            if ~obj.progressDialogIsValid()
+                obj.ProgressDialogHandle = [];
+                return
+            end
+
+            obj.ProgressDialogHandle.Value = progressValue;
+            obj.ProgressDialogHandle.Message = msg;
+            obj.ProgressDialogHandle.Title = obj.getProgressTitle();
+
+            % UI figures update through MATLAB's event queue during the blocking transfer.
+            drawnow limitrate
+        end
+
+        function tf = cancelWasRequested(obj)
+            tf = obj.progressDialogIsValid() ...
+                && obj.ProgressDialogHandle.CancelRequested;
+        end
+
+        function tf = progressDialogIsValid(obj)
+            tf = ~isempty(obj.ProgressDialogHandle) ...
+                && isvalid(obj.ProgressDialogHandle);
+        end
+
+        function closeProgressDialog(obj)
+            if ~isempty(obj.ProgressDialogHandle)
+                if obj.progressDialogIsValid()
+                    close(obj.ProgressDialogHandle);
+                end
+                obj.ProgressDialogHandle = [];
+            end
+        end
+
         function closeWaitbar(obj)
             % Close the progress waitbar by deleting the handle so
             % CloseRequestFcn isn't called, because waitbar calls
@@ -237,21 +307,21 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
         function strMessage = getProgressMessage(obj)
         %getProgressMessage Get message with information about progress
             
-            strMessage = obj.getTransferStatus();
+            strTransferStatus = obj.getTransferStatus();
             strRemainingTime = obj.getRemainingTimeEstimate();
+
             if ~isempty(strRemainingTime)
-                strMessage = strjoin({strMessage, strRemainingTime});
-            end
-            
-            % "Animate" ellipsis
-            if isempty(obj.PreviousMessage)
-                % Skip
-            elseif strcmp( obj.PreviousMessage(end-2:end), '...')
-                strMessage(end-1:end) = []; % Remove two dots, one remaining
-            elseif strcmp( obj.PreviousMessage(end-1:end), '..')
-                % Keep three dots.
+                % "Animate" ellipsis on the remaining time string
+                prev = obj.PreviousMessage;
+                if numel(prev) >= 3 && strcmp( prev(end-2:end), '...')
+                    strRemainingTime(end-1:end) = []; % Remove two dots, one remaining
+                elseif numel(prev) >= 2 && ~strcmp( prev(end-1:end), '..')
+                    strRemainingTime(end) = []; % Remove last dot, two remaining
+                end
+                % else: previous ended with '..', keep three dots
+                strMessage = {strTransferStatus, strRemainingTime};
             else
-                strMessage(end) = []; % Remove last dot, two remaining
+                strMessage = strTransferStatus;
             end
         end
 
@@ -286,10 +356,10 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
 
             strMessage = strjoin({strMessage, durationMessage});
         end
-    
+
         function percentTransferred = computePercentTransferred(obj)
             fileSizeBytes = obj.getFileSizeBytes();
-            percentTransferred = double(obj.Value)/double(fileSizeBytes)*100;
+            percentTransferred = double(obj.Value) / double(fileSizeBytes) * 100;
         end
 
         function fileSizeMb = getFileSizeMb(obj)
@@ -355,5 +425,24 @@ classdef FileTransferProgressMonitor < matlab.net.http.ProgressMonitor
             filename = char(filename);
             shortenedFilename = [filename(1:12), '...', filename(end-11:end)];
         end
+    end
+
+    methods (Static, Access = protected)
+        function tf = isWebBasedUIFigure(fig)
+            % uiprogressdlg is supported for uifigures or all figures
+            % starting from R2025a
+            tf = ~isempty(fig) ...
+                && isscalar(fig) ...
+                && isgraphics(fig, 'figure') ...
+                && (isprop(fig, 'isUIFigure') || isMATLABRelease2025aOrNewer());
+        end
+    end
+end
+
+function tf = isMATLABRelease2025aOrNewer()
+    try
+        tf = ~isMATLABReleaseOlderThan("R2025a");
+    catch % isMATLABReleaseOlderThan was introduced in R2020b
+        tf = false;
     end
 end
