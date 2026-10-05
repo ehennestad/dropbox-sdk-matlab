@@ -61,22 +61,6 @@ classdef DropboxApiClientTest < matlab.unittest.TestCase
             testCase.verifyEqual(char(transpose(content)), 'Test content');
         end
 
-        function testProgressMonitor(testCase)
-            % Create test file
-            tempFile = [tempname '.txt'];
-            fid = fopen(tempFile, 'w');
-            fprintf(fid, 'Test content for progress monitor');
-            fclose(fid);
-            cleanupObj = onCleanup(@() delete(tempFile));
-            
-            % Create progress monitor
-            monitor = dropbox.internal.DropboxMultiSessionUploadProgressMonitor(1000);
-            %monitor.update(500); % 50% progress
-            monitor.Value = 500;
-            testCase.verifyEqual(monitor.PercentTransferred, 50);
-            monitor.quit();
-        end
-
         function testUploadAndDownload(testCase)
             % Create a temporary test file
             tempFile = [tempname '.txt'];

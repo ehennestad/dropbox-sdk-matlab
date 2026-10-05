@@ -79,7 +79,7 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
             fileMetadata = obj.getMetadata(filePath);
             fileSizeBytes = fileMetadata.size;
 
-            downloadedFilePath = downloadFile(strLocalFilename, fileLinkURL, ...
+            downloadedFilePath = dropbox.external.webprogress.download(strLocalFilename, fileLinkURL, ...
                 "FileSizeBytes", fileSizeBytes);
 
             if ~nargout
@@ -114,7 +114,7 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
                     matlab.net.http.MediaType("application/octet-stream"));
                 req = matlab.net.http.RequestMessage(method, contentTypeField, []);
     
-                uploadFile(filePathLocal, fileLinkURL, "RequestMessage", req)
+                dropbox.external.webprogress.upload(filePathLocal, fileLinkURL, "RequestMessage", req)
             else
                 obj.multipartUpload(filePathLocal, filePathRemote, optionalNvPairs{:})
             end
@@ -362,7 +362,7 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
                 "path", filePath ...
                 );
             webOpts = matlab.net.http.HTTPOptions(...
-                'ProgressMonitorFcn', @FileTransferProgressMonitor, ...
+                'ProgressMonitorFcn', @dropbox.external.webprogress.FileTransferProgressMonitor, ...
                 'UseProgressMonitor', true, ...
                 'ConnectTimeout', 20);
 
@@ -383,7 +383,7 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
                 "path", folderPath ...
                 );
             webOpts = matlab.net.http.HTTPOptions(...
-                'ProgressMonitorFcn', @FileTransferProgressMonitor, ...
+                'ProgressMonitorFcn', @dropbox.external.webprogress.FileTransferProgressMonitor, ...
                 'UseProgressMonitor', true, ...
                 'ConnectTimeout', 20);
 
@@ -455,16 +455,27 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
             uploadSessionID = responseData.session_id;
         end
 
-        function uploadSessionID = uploadSessionAppend(obj, uploadSessionID, dataProvider, offset, options)
+        function uploadSessionID = uploadSessionAppend(obj, uploadSessionID, filePath, offset, options)
+        % uploadSessionAppend - Append a part of a file to an upload session
+        %
+        % Sends options.NumBytes bytes of filePath, starting offset bytes
+        % into the file, and appends them to the session at offset. The
+        % offset is both the position of the part in the file and the
+        % number of bytes the session holds before it. Without filePath,
+        % the request carries no data, as when the session is closed with
+        % AbortSession. Progress is shown in options.ProgressMonitor, or
+        % in a display of its own for the part if none is given.
             arguments
                 obj
                 uploadSessionID (1,1) string
-                dataProvider = matlab.net.http.io.ContentProvider.empty
+                filePath string {mustBeScalarOrEmpty} = string.empty
                 offset (1,1) uint64 = 0
-                options.WebOptions matlab.net.http.HTTPOptions = matlab.net.http.HTTPOptions.empty % Todo: Use client property instead of passing???
+                options.NumBytes (1,1) double {mustBePositive} = Inf
+                options.ProgressMonitor dropbox.external.webprogress.MultipartProgressMonitor ...
+                    = dropbox.external.webprogress.MultipartProgressMonitor.empty
                 options.AbortSession (1,1) logical = false
             end
-           
+
             parameters = struct( ...
                'cursor', struct( ...
                    'session_id', uploadSessionID, ...
@@ -474,19 +485,32 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
             );
 
             apiEndpoint = obj.getContentEndpointURL("files/upload_session/append_v2");
-            obj.postContent(apiEndpoint, parameters, dataProvider, ...
-                "WebOptions", options.WebOptions);
+            if isempty(filePath)
+                obj.postContent(apiEndpoint, parameters);
+            else
+                obj.postFilePart(apiEndpoint, parameters, filePath, ...
+                    "Offset", offset, ...
+                    "NumBytes", options.NumBytes, ...
+                    "ProgressMonitor", options.ProgressMonitor);
+            end
         end
 
-        function uploadSessionFinish(obj, uploadSessionID, dataProvider, offset, dropBoxFilePath, uploadOptions, options)
+        function uploadSessionFinish(obj, uploadSessionID, filePath, offset, dropBoxFilePath, uploadOptions, options)
+        % uploadSessionFinish - Append the last part of a file and save the file in Dropbox
+        %
+        % filePath, offset, options.NumBytes and options.ProgressMonitor
+        % give the last part as for uploadSessionAppend. Without filePath,
+        % the session is saved with the parts it already holds.
             arguments
                 obj
                 uploadSessionID (1,1) string
-                dataProvider = matlab.net.http.io.ContentProvider.empty
+                filePath string {mustBeScalarOrEmpty} = string.empty
                 offset (1,1) uint64 = 0
                 dropBoxFilePath (1,1) string = "missing"
                 uploadOptions.?dropbox.options.CommitInfo
-                options.WebOptions matlab.net.http.HTTPOptions = matlab.net.http.HTTPOptions.empty
+                options.NumBytes (1,1) double {mustBePositive} = Inf
+                options.ProgressMonitor dropbox.external.webprogress.MultipartProgressMonitor ...
+                    = dropbox.external.webprogress.MultipartProgressMonitor.empty
             end
            
             dropBoxFilePath = obj.validatePathName(dropBoxFilePath);
@@ -506,8 +530,14 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
             );
 
             apiEndpoint = obj.getContentEndpointURL("files/upload_session/finish");
-            obj.postContent(apiEndpoint, parameters, dataProvider, ...
-                "WebOptions", options.WebOptions);
+            if isempty(filePath)
+                obj.postContent(apiEndpoint, parameters);
+            else
+                obj.postFilePart(apiEndpoint, parameters, filePath, ...
+                    "Offset", offset, ...
+                    "NumBytes", options.NumBytes, ...
+                    "ProgressMonitor", options.ProgressMonitor);
+            end
         end
     end
 
@@ -587,6 +617,35 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
         
             response = req.send(apiEndpointUrl, options.WebOptions);
 
+            result = obj.processResponse(response);
+        end
+
+        function result = postFilePart(obj, apiEndpointUrl, parameters, filePath, options)
+        % postFilePart - Send a part of a file to a content endpoint and show progress
+            arguments
+                obj (1,1) dropbox.DropboxApiClient
+                apiEndpointUrl (1,1) matlab.net.URI
+                parameters (1,:) struct
+                filePath (1,1) string
+                options.Offset (1,1) double = 0
+                options.NumBytes (1,1) double = Inf
+                options.ProgressMonitor dropbox.external.webprogress.MultipartProgressMonitor ...
+                    = dropbox.external.webprogress.MultipartProgressMonitor.empty
+            end
+
+            method = matlab.net.http.RequestMethod.POST;
+            headers = obj.getContentHeader(parameters);
+            req = matlab.net.http.RequestMessage(method, headers);
+
+            % With an output, upload returns the response to a failed
+            % request instead of raising an error, so that processResponse
+            % can report the error summary that Dropbox sends.
+            [~, response] = dropbox.external.webprogress.upload(char(filePath), ...
+                char(apiEndpointUrl), ...
+                "RequestMessage", req, ...
+                "Offset", options.Offset, ...
+                "NumBytes", options.NumBytes, ...
+                "ProgressMonitor", options.ProgressMonitor);
             result = obj.processResponse(response);
         end
 
@@ -697,48 +756,40 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
             obj.HasOpenUploadSession = true;
             cleanUpObj = onCleanup(@(varargin) obj.closeUploadSession(uploadSessionID));
 
-            % Create ProgressMonitor
-            monitorOpts = {...
+            % One progress display for the whole file. Each part that
+            % Dropbox accepts is added to it. Deleting the monitor closes
+            % the dialog if the upload stops with an error.
+            progressMonitor = dropbox.external.webprogress.MultipartProgressMonitor(totalBytes, ...
                 'DisplayMode', options.DisplayMode, ...
                 'UpdateInterval', options.UpdateInterval, ...
                 'Filename', filename, ...
-                'IndentSize', options.IndentSize };
-            
-            progressMonitor = dropbox.internal.DropboxMultiSessionUploadProgressMonitor(...
-                totalBytes, monitorOpts{:});
-            progressMonitorCleanupObj = onCleanup(@progressMonitor.quit);
-
-            webOpts = matlab.net.http.HTTPOptions(...
-                'ProgressMonitorFcn', @(varargin) getMonitor(progressMonitor), ...
-                'UseProgressMonitor', true, ...
-                'ConnectTimeout', 20);
+                'IndentSize', options.IndentSize);
+            progressMonitorCleanupObj = onCleanup(@() delete(progressMonitor));
 
             % Get chunks
             chunkSize = obj.MAX_CHUNK_SIZE;
             offset = uint64(0);
             numChunks = ceil(totalBytes / chunkSize);
 
-            dataProvider = dropbox.internal.MultiPartFileProvider(filePath, totalBytes, chunkSize);
-            providerCleanupObj = onCleanup(@(h) delete(dataProvider));
-
             for i = 1:numChunks
-                
+
                 if i == numChunks
                     chunkSize = totalBytes - (numChunks-1)*chunkSize;
                 end
-                    
+
                 if i < numChunks
-                    obj.uploadSessionAppend(uploadSessionID, dataProvider, offset, "WebOptions", webOpts);
+                    obj.uploadSessionAppend(uploadSessionID, filePath, offset, ...
+                        "NumBytes", chunkSize, "ProgressMonitor", progressMonitor);
                 else
                     nvPairs = namedargs2cell(uploadOptions);
-                    obj.uploadSessionFinish(uploadSessionID, dataProvider, offset, dropBoxFilePath, "WebOptions", webOpts, nvPairs{:});
+                    obj.uploadSessionFinish(uploadSessionID, filePath, offset, dropBoxFilePath, ...
+                        "NumBytes", chunkSize, "ProgressMonitor", progressMonitor, nvPairs{:});
                     obj.HasOpenUploadSession = false;
                 end
-                % drawnow
 
                 offset = offset + chunkSize;
-                dataProvider.resetCount()
             end
+            close(progressMonitor)
         end
 
         function closeUploadSession(obj, uploadSessionID)
