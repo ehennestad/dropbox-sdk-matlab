@@ -683,7 +683,7 @@ classdef DropboxApiClient < handle & matlab.mixin.CustomDisplay
             end
 
             if options.ShowFilename
-                [~, filename, ext] = fileparts(strURLFilename);
+                [~, filename, ext] = fileparts(filePath);
                 filename = [char(filename), char(ext)];
             else
                 filename = '';
